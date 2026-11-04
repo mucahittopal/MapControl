@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SemiDrive üniteli Chery (2023-2024 Tiggo 7 Pro / Tiggo 8 Pro / Omoda 5, 183 HP) için
+  /system/etc/permissions/ altına kopyalanır; kurulum adımları README'de.
+
+  Bu ünitelerde control_privapp_permissions=enforce: /system/priv-app'teki uygulamanın istediği
+  her signature|privileged izin burada olmalı. Biri eksikse system_server açılışta çöker ve ünite
+  açılmaz (kurtarma README'de). Manifest'e privileged izin eklenirse buraya da eklenmeli.
+-->
+<permissions>
+    <privapp-permissions package="com.mapcontrol">
+        <permission name="android.car.permission.CAR_VENDOR_EXTENSION"/>
+        <permission name="android.permission.DELETE_PACKAGES"/>
+        <permission name="android.permission.MEDIA_CONTENT_CONTROL"/>
+        <permission name="android.permission.PACKAGE_USAGE_STATS"/>
+        <permission name="android.permission.READ_LOGS"/>
+        <permission name="android.permission.WRITE_SECURE_SETTINGS"/>
+    </privapp-permissions>
+</permissions>

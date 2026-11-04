@@ -69,6 +69,49 @@ Desay SV **CarInfo / VDBus** üzerinden güç modu (OFF → STANDBY → ON), clu
 
 ---
 
+## 🚙 SemiDrive üniteler (2023-2024 Tiggo 7 Pro, Tiggo 8 Pro, Omoda 5 — 183 HP)
+
+Bu araçlarda ünite DesaySV değil, SemiDrive X9'dur (Android 10). MapControl üniteyi `ro.product.device` ile tanır (`chery_t1e`, `chery_t1d`, `chery_t19c`) ve araç verisini CarInfo/VDBus yerine Android araç özelliklerinden okur.
+
+- **Çalışanlar:** Araç bilgileri (hız, vites, devir, kilometre, menzil, kontaktan beri km, kapılar, bagaj), güç moduna bağlı karşılama ekranı ve sesi, açılışta uygulamayı açma, yolculuk kaydı ve araç verisi istemeyen bölümler.
+- **Gizlenenler:** Sürüş hafızası, iklim ve cam tavan otomasyonu, yüz tanıma, Kamera 360 ve gösterge ekranına yansıtma. Bunlar DesaySV servislerini ister.
+
+### Kurulum
+
+Araç verisi `android.car.permission.CAR_VENDOR_EXTENSION` iznini ister. Bu izin yalnızca `/system/priv-app` altındaki uygulamalara verilir. Bu ünitelerde adb kabuğunda `su 0` çalışır.
+
+1. Release APK'yı derleyin ve `install.sh` ile normal kurulumu yapın.
+2. Uygulamayı sistem uygulaması olarak kopyalayın ve üniteyi yeniden başlatın:
+
+```bash
+adb push app/build/outputs/apk/release/app-release.apk /data/local/tmp/MapControl.apk
+adb push semidrive/privapp-permissions-com.mapcontrol.xml /data/local/tmp/
+adb shell "su 0 sh -c '(mount -o rw,remount / || mount -o rw,remount /system) && mkdir -p /system/priv-app/MapControl && cp /data/local/tmp/MapControl.apk /system/priv-app/MapControl/ && cp /data/local/tmp/privapp-permissions-com.mapcontrol.xml /system/etc/permissions/ && chmod 755 /system/priv-app/MapControl && chmod 644 /system/priv-app/MapControl/MapControl.apk /system/etc/permissions/privapp-permissions-com.mapcontrol.xml'"
+adb reboot
+```
+
+3. Açıldıktan sonra iznin verildiğini kontrol edin; satırda `granted=true` görünmeli:
+
+```bash
+adb shell "dumpsys package com.mapcontrol | grep CAR_VENDOR_EXTENSION"
+```
+
+Sonraki güncellemeler `install.sh` ile normal yapılır. Sistemdeki kopya yerinde kaldıkça izin korunur.
+
+**Önemli:** Bu ünitelerde ayrıcalıklı izin denetimi açıktır (`control_privapp_permissions=enforce`). Uygulamanın istediği her `signature|privileged` izin `semidrive/privapp-permissions-com.mapcontrol.xml` dosyasında olmalıdır. Biri eksikse ünite açılmaz. Manifest'e böyle bir izin eklenirse bu dosyaya da ekleyin.
+
+**Ünite açılmazsa ya da kaldırmak için:**
+
+```bash
+adb wait-for-device
+adb shell "su 0 sh -c '(mount -o rw,remount / || mount -o rw,remount /system) && rm -rf /system/priv-app/MapControl && rm -f /system/etc/permissions/privapp-permissions-com.mapcontrol.xml'"
+adb reboot
+```
+
+Kaldırma için ardından `uninstall.sh` çalıştırın.
+
+---
+
 ## 🔒 Gizlilik / izinler
 
 **Telefon paneli (launcher):** Launcher modu açıkken ana ekrandaki telefon paneli, arama şeridi ve arama ekranı bağlı telefonun rehberini ve son aramalarını gösterir. Bunun için uygulama şu izinleri ister; launcher modu kapalıyken bu özellikler çalışmaz ve izin istenmez:

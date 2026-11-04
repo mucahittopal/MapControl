@@ -16,6 +16,7 @@ import com.mapcontrol.ui.HeaderStatusSink;
 import com.mapcontrol.ui.builder.TopBarBuilder;
 import com.mapcontrol.ui.theme.UiStyles;
 import com.mapcontrol.vehicle.DriveModeStyle;
+import com.mapcontrol.vehicle.VehiclePlatform;
 import java.util.function.IntConsumer;
 
 /** Live status widgets independent of page chrome; used by the rail and launcher quick access. */
@@ -47,6 +48,11 @@ public final class StatusWidgetsView extends ViewGroup implements HeaderStatusSi
         soundChip = new StatusChip(prefix + "_sound", R.string.side_rail_equalizer,
                 R.drawable.ic_mdi_volume_plus, 11);
         soundChip.setVisibility(View.GONE);
+        if (VehiclePlatform.isSemiDrive()) {
+            // SemiDrive Chery'de sürüş modu ve gösterge ekranına yansıtma DesaySV servisi ister.
+            modeChip.setVisibility(View.GONE);
+            projectionChip.setVisibility(View.GONE);
+        }
         addView(wifiChip);
         addView(modeChip);
         addView(phoneChip);

@@ -53,6 +53,9 @@ import com.mapcontrol.R;
 import com.mapcontrol.vehicle.ClimateAutomationEngine;
 import com.mapcontrol.vehicle.SunroofAutomationEngine;
 import com.mapcontrol.vehicle.SunroofGestureOverlayManager;
+import com.mapcontrol.vehicle.VehicleMetricsRepository;
+import com.mapcontrol.vehicle.VehicleMetricsSnapshot;
+import com.mapcontrol.vehicle.VehiclePlatform;
 import android.content.pm.PackageManager;
 
 public class MapControlService extends Service {
@@ -385,14 +388,7 @@ public class MapControlService extends Service {
         // Her 2 saniyede bir power mode kontrol et
         scheduler.scheduleWithFixedDelay(() -> {
             try {
-                if (!CarInfoProxy.getInstance().isServiceConnnected()) {
-                    // Bağlantı yoksa yeniden bağlanmayı dene (Thread.sleep yerine bir sonraki iterasyonda kontrol edilir)
-                    try {
-                        CarInfoProxy.getInstance().init(getApplicationContext());
-                        // Thread.sleep kaldırıldı - bir sonraki iterasyonda (2 saniye sonra) kontrol edilecek
-                    } catch (Exception e) {
-                        // Ignore
-                    }
+                if (!ensureVehicleBus()) {
                     com.mapcontrol.trip.TripRecorder.get(this).onPowerSample(-1);
                     return;
                 }
@@ -400,7 +396,7 @@ public class MapControlService extends Service {
                 // CarInfoProxy.getItemValues yanıt yokken [0] döndürür; bu da "kontak kapandı" sanılırdı.
                 // Ham okuma yanıt yoksa null verir: güç bilinmiyor (-1) sayılır, kapanış işleri tetiklenmez.
                 long sampledAt = android.os.SystemClock.elapsedRealtime();
-                int[] pwrItems = com.mapcontrol.vehicle.CarInfoRead.readOnly(ReadOnlyID.ID_SYSTEM_POWER_MODE);
+                int[] pwrItems = readPowerModeItems();
 
                 // Yolculuk kaydı her örneği görür; kısa okuma kayıpları 60 sn'lik bitiş beklemesine takılır.
                 com.mapcontrol.trip.TripRecorder.get(this).onPowerSample(
@@ -529,16 +525,12 @@ public class MapControlService extends Service {
                     && com.mapcontrol.launcher.HomeScreenPrefs.startEarliest(this)) {
                 maybeLaunchHome();
             }
-            if (!CarInfoProxy.getInstance().isServiceConnnected()) {
-                try {
-                    CarInfoProxy.getInstance().init(getApplicationContext());
-                } catch (Exception ignored) {
-                }
+            if (!ensureVehicleBus()) {
                 return;
             }
             // getItemValues yanıt yokken [0] döndürür; bu "güç 0 = kontak kapalı" sanılıp yolda karşılama
             // ekranını yeniden açıyordu. Ham okuma yanıt yoksa null verir: güç bilinmiyor sayılır, tur atlanır.
-            int[] pwrItems = com.mapcontrol.vehicle.CarInfoRead.readOnly(ReadOnlyID.ID_SYSTEM_POWER_MODE);
+            int[] pwrItems = readPowerModeItems();
             if (pwrItems == null) {
                 return;
             }
@@ -1197,12 +1189,17 @@ public class MapControlService extends Service {
     /** 0 kapalı, 1 hazır, 2 motor. VDBus okunamazsa -1. */
     private int readSystemPowerMode() {
         try {
-            if (!CarInfoProxy.getInstance().isServiceConnnected()) {
-                return -1;
+            int[] pwrItems;
+            if (VehiclePlatform.isSemiDrive()) {
+                pwrItems = readPowerModeItems();
+            } else {
+                if (!CarInfoProxy.getInstance().isServiceConnnected()) {
+                    return -1;
+                }
+                pwrItems = CarInfoProxy.getInstance().getItemValues(
+                        VDEventCarInfo.MODULE_READONLY_INFO,
+                        ReadOnlyID.ID_SYSTEM_POWER_MODE);
             }
-            int[] pwrItems = CarInfoProxy.getInstance().getItemValues(
-                    VDEventCarInfo.MODULE_READONLY_INFO,
-                    ReadOnlyID.ID_SYSTEM_POWER_MODE);
             if (pwrItems != null && pwrItems.length > 0) {
                 return pwrItems[0];
             }
@@ -1211,8 +1208,38 @@ public class MapControlService extends Service {
         return -1;
     }
 
+    /**
+     * Araç veriyolu hazır mı. DesaySV'de CarInfoProxy bağlı değilse yeniden bağlanmayı dener
+     * (sonuç bir sonraki turda görülür). SemiDrive'da veri {@link VehicleMetricsRepository}'den
+     * gelir; yolculuk kaydı onu servis boyunca açık tutar.
+     */
+    private boolean ensureVehicleBus() {
+        if (VehiclePlatform.isSemiDrive()) {
+            return VehicleMetricsRepository.getInstance(this).isConnected();
+        }
+        if (CarInfoProxy.getInstance().isServiceConnnected()) {
+            return true;
+        }
+        try {
+            CarInfoProxy.getInstance().init(getApplicationContext());
+        } catch (Exception ignored) {
+        }
+        return false;
+    }
+
+    /** Güç modu (0 kapalı, 1 hazır, 2 çalışıyor); okunamazsa null. */
+    private int[] readPowerModeItems() {
+        if (VehiclePlatform.isSemiDrive()) {
+            int mode = VehicleMetricsRepository.getInstance(this)
+                    .getCombined(ReadOnlyID.ID_SYSTEM_POWER_MODE);
+            return VehicleMetricsSnapshot.isValid(mode) ? new int[]{mode} : null;
+        }
+        return com.mapcontrol.vehicle.CarInfoRead.readOnly(ReadOnlyID.ID_SYSTEM_POWER_MODE);
+    }
+
     private void openClusterDisplay() {
-        if (handler == null) {
+        // SemiDrive'da kadran Android'e ikinci ekran olarak bağlı değil; açılacak alan yok.
+        if (handler == null || VehiclePlatform.isSemiDrive()) {
             return;
         }
         handler.post(() -> {
@@ -1256,7 +1283,7 @@ public class MapControlService extends Service {
      *                     {@code false}: cluster kapanır, hedef uygulama önde kalır (yüzen çubuk).
      */
     private void closeClusterDisplay(boolean sendBackground) {
-        if (handler == null) {
+        if (handler == null || VehiclePlatform.isSemiDrive()) {
             return;
         }
         handler.post(() -> {

@@ -9,6 +9,11 @@
     <!-- VDBus Service Permission (from SMS service and other VDBus apps) -->
     <uses-permission android:name="ivi.vds.permission.SERVICE" />
     
+    <!-- SemiDrive üniteli Chery (2023-2024 Tiggo 7 Pro / Tiggo 8 Pro / Omoda 5) araç özellikleri.
+         signature|privileged: yalnız /system/priv-app kurulumunda verilir (README). DesaySV'de etkisiz. -->
+    <uses-permission android:name="android.car.permission.CAR_VENDOR_EXTENSION"
+        tools:ignore="ProtectedPermissions" />
+
     <!-- System level permissions (may be required for VDBus) -->
     <uses-permission android:name="android.permission.READ_SECURE_SETTINGS" 
         tools:ignore="ProtectedPermissions" />

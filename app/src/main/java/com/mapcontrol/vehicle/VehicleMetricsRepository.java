@@ -105,6 +105,9 @@ public final class VehicleMetricsRepository {
     private final ExecutorService ioExecutor = newDaemonSingleThread();
     private final Set<Listener> listeners = new CopyOnWriteArraySet<>();
     private final VehicleMetricsCache cache = new VehicleMetricsCache();
+    /** SemiDrive üniteli Chery'de veri CarInfoProxy yerine buradan gelir; DesaySV'de null. */
+    private final SemiDriveVehicleSource semiDrive =
+            VehiclePlatform.isSemiDrive() ? new SemiDriveVehicleSource() : null;
 
     private volatile boolean callbacksRegistered;
     private volatile boolean started;
@@ -223,7 +226,11 @@ public final class VehicleMetricsRepository {
             return;
         }
         ioExecutor.execute(() -> {
-            loadSnapshotFromBus();
+            if (semiDrive != null) {
+                semiDrive.readAll(cache);
+            } else {
+                loadSnapshotFromBus();
+            }
             notifyListeners();
         });
     }
@@ -257,9 +264,13 @@ public final class VehicleMetricsRepository {
         started = true;
         ioExecutor.execute(() -> {
             try {
-                ensureCarInfoReady();
-                registerCallbacksIfNeeded();
-                loadSnapshotFromBus();
+                if (semiDrive != null) {
+                    semiDrive.start(appContext, cache, this::notifyListeners);
+                } else {
+                    ensureCarInfoReady();
+                    registerCallbacksIfNeeded();
+                    loadSnapshotFromBus();
+                }
             } catch (Throwable ignored) {
                 cache.clear();
             }
@@ -269,6 +280,9 @@ public final class VehicleMetricsRepository {
 
     private void stop() {
         started = false;
+        if (semiDrive != null) {
+            semiDrive.stop();
+        }
         unregisterCallbacks();
     }
 
@@ -302,6 +316,9 @@ public final class VehicleMetricsRepository {
     }
 
     private boolean isCarInfoConnected() {
+        if (semiDrive != null) {
+            return semiDrive.isConnected();
+        }
         return CarInfoProxy.getInstance().isServiceConnnected();
     }
 

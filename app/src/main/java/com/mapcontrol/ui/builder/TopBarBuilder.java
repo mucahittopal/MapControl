@@ -26,6 +26,7 @@ import com.mapcontrol.ui.HeaderStatusSink;
 import com.mapcontrol.ui.theme.UiStyles;
 import com.mapcontrol.ui.widget.StatusWidgetsView;
 import com.mapcontrol.vehicle.DriveModeStyle;
+import com.mapcontrol.vehicle.VehiclePlatform;
 
 /**
  * Üst başlık barı: Sayfa başlığı, geri butonu, bildirim tarzı kompakt durum çipleri ve marka rozeti.
@@ -140,6 +141,10 @@ public class TopBarBuilder implements HeaderStatusSink {
         LinearLayout.LayoutParams modeLp = new LinearLayout.LayoutParams(-2, -2);
         modeLp.setMarginEnd(chipMargin);
         statusContainer.addView(chipDriveMode, modeLp);
+        if (VehiclePlatform.isSemiDrive()) {
+            // SemiDrive Chery'de sürüş modu DesaySV servisi ister.
+            chipDriveMode.setVisibility(View.GONE);
+        }
 
         chipServer = createHeaderNotificationChip(
                 R.drawable.ic_mdi_cellphone,

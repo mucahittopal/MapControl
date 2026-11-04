@@ -23,6 +23,7 @@ import com.mapcontrol.R;
 import com.mapcontrol.ui.theme.UiStyles;
 import com.mapcontrol.ui.widget.StatusWidgetsView;
 import com.mapcontrol.util.DialogHelper;
+import com.mapcontrol.vehicle.VehiclePlatform;
 
 public class SideRailBuilder {
     public interface SideRailCallback {
@@ -155,6 +156,7 @@ public class SideRailBuilder {
         menuContainer.addView(menuVehicleInfo);
         menuContainer.addView(menuSettings);
         menuContainer.addView(menuHomeScreen);
+        hideDesaySvOnlyMenus();
 
         float density = context.getResources().getDisplayMetrics().density;
         updateRailBottomInset();
@@ -235,6 +237,7 @@ public class SideRailBuilder {
         menuContainer.addView(menuVehicleInfo);
         menuContainer.addView(menuSettings);
         menuContainer.addView(menuHomeScreen);
+        hideDesaySvOnlyMenus();
 
         // Let the final destination travel all the way to the left edge.
         menuContainer.setPaddingRelative(0, 0,
@@ -251,6 +254,21 @@ public class SideRailBuilder {
         updateMenuSelection(menuWifi, menuFileUpload, menuProjection, menuVehicleInfo, menuSettings, menuApps, menuDriveMode, menuTest, menuWelcomeSound);
         bindMenuClicks();
         return sideRail;
+    }
+
+    /**
+     * SemiDrive üniteli Chery'de DesaySV araç servisleri yok: sürüş hafızası, iklim ve cam tavan
+     * otomasyonu, yüz tanıma, Kamera 360 ve gösterge ekranına yansıtma çalışmaz.
+     */
+    private void hideDesaySvOnlyMenus() {
+        if (!VehiclePlatform.isSemiDrive()) {
+            return;
+        }
+        View[] menus = {menuDriveMode, menuClimateAutomation, menuSunroofAutomation,
+                menuFaceRecognition, menuCamera360, menuProjection};
+        for (View menu : menus) {
+            menu.setVisibility(View.GONE);
+        }
     }
 
     private void bindMenuClicks() {
@@ -440,6 +458,9 @@ public class SideRailBuilder {
             }
             updateMenuSelection(menuDriveMode, menuWifi, menuFileUpload, menuProjection, menuVehicleInfo, menuSettings, menuApps, menuTest, menuWelcomeSound);
         });
+        if (VehiclePlatform.isSemiDrive()) {
+            btnDrive.setVisibility(View.GONE);
+        }
         View btnSettings = createDockActionItem(R.drawable.ic_mdi_cog, t(R.string.dock_settings), v -> {
             if (callback != null) {
                 callback.onTabSelected(TAB_SETTINGS, t(R.string.side_rail_settings));
