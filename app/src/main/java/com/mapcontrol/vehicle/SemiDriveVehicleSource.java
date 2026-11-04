@@ -108,8 +108,11 @@ final class SemiDriveVehicleSource {
                 return false;
             }
             Method get = manager.getClass().getMethod("getProperty", Class.class, int.class, int.class);
-            // İzin denetimi: CAR_VENDOR_EXTENSION yoksa ilk okuma SecurityException verir.
-            get.invoke(manager, Integer.class, KEY_STS, 0);
+            // İzin ve ünite denetimi: CAR_VENDOR_EXTENSION yoksa SecurityException, özellik yoksa null.
+            if (get.invoke(manager, Integer.class, KEY_STS, 0) == null) {
+                Log.w(TAG, "KEY_STS okunamadı: Chery SemiDrive araç özelliği yok");
+                return false;
+            }
             propertyManager = manager;
             getProperty = get;
             connected = true;
