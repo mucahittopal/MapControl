@@ -1,0 +1,47 @@
+// SemiDrive Chery üniteleri için sistem kabuğu: /system/priv-app'e yalnız bu küçük APK konur
+// (sistem bölümünde birkaç MB yer var), asıl uygulama onun güncellemesi olarak kurulur.
+// Kabuk ile uygulama aynı anahtarla imzalanmalı; imza ayarları app/build.gradle ile aynı.
+plugins {
+    id 'com.android.application'
+}
+
+def signingProperties = new Properties()
+def signingPropertiesFile = rootProject.file('local.properties')
+if (signingPropertiesFile.exists()) {
+    signingPropertiesFile.withInputStream { signingProperties.load(it) }
+}
+def releaseStore = signingProperties.getProperty('RELEASE_STORE_FILE')
+def releaseStorePassword = signingProperties.getProperty('RELEASE_STORE_PASSWORD')
+def releaseKeyPassword = signingProperties.getProperty('RELEASE_KEY_PASSWORD')
+def hasReleaseSigning = releaseStore && releaseStorePassword && releaseKeyPassword
+
+android {
+    namespace 'com.mapcontrol.semidrive.stub'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.mapcontrol"
+        minSdk 29
+        targetSdk 28
+        // Asıl uygulamadan küçük olmalı ki kurulan uygulama bu kabuğun güncellemesi sayılsın.
+        versionCode 1
+        versionName "semidrive-stub"
+    }
+
+    signingConfigs {
+        release {
+            if (hasReleaseSigning) {
+                storeFile rootProject.file(releaseStore)
+                storePassword releaseStorePassword
+                keyAlias signingProperties.getProperty('RELEASE_KEY_ALIAS', 'mapcontrol')
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            if (hasReleaseSigning) signingConfig signingConfigs.release
+        }
+    }
+}

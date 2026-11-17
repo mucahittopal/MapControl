@@ -80,23 +80,38 @@ Bu araçlarda ünite DesaySV değil, SemiDrive X9'dur (Android 10). MapControl �
 
 Araç verisi `android.car.permission.CAR_VENDOR_EXTENSION` iznini ister. Bu izin yalnızca `/system/priv-app` altındaki uygulamalara verilir. Bu ünitelerde adb kabuğunda `su 0` çalışır.
 
-1. Release APK'yı derleyin ve `install.sh` ile normal kurulumu yapın.
-2. Uygulamayı sistem uygulaması olarak kopyalayın ve üniteyi yeniden başlatın:
+Sistem bölümünde yalnızca birkaç MB boş yer olduğu için uygulamanın kendisi oraya sığmaz. Sisteme yalnızca izinleri isteyen küçük bir kabuk (`semidrive/stub`, birkaç KB) konur. Uygulama bu kabuğun güncellemesi olarak kurulur ve izinleri ondan alır. Kabuk ve uygulama aynı anahtarla imzalanmalıdır; ikisi de `local.properties` içindeki release anahtarını kullanır.
+
+1. Kabuğu ve uygulamayı derleyin:
 
 ```bash
-adb push app/build/outputs/apk/release/app-release.apk /data/local/tmp/MapControl.apk
+./gradlew :semidrive-stub:assembleRelease :app:assembleRelease
+```
+
+2. Kabuğu sisteme kopyalayın ve üniteyi yeniden başlatın:
+
+```bash
+adb push semidrive/stub/build/outputs/apk/release/semidrive-stub-release.apk /data/local/tmp/MapControl.apk
 adb push semidrive/privapp-permissions-com.mapcontrol.xml /data/local/tmp/
 adb shell "su 0 sh -c '(mount -o rw,remount / || mount -o rw,remount /system) && mkdir -p /system/priv-app/MapControl && cp /data/local/tmp/MapControl.apk /system/priv-app/MapControl/ && cp /data/local/tmp/privapp-permissions-com.mapcontrol.xml /system/etc/permissions/ && chmod 755 /system/priv-app/MapControl && chmod 644 /system/priv-app/MapControl/MapControl.apk /system/etc/permissions/privapp-permissions-com.mapcontrol.xml'"
 adb reboot
 ```
 
-3. Açıldıktan sonra iznin verildiğini kontrol edin; satırda `granted=true` görünmeli:
+3. Ünite açılınca `install.sh` ile normal kurulumu yapın. Bu ünitelerde JIT kapalıdır; derlenmemiş uygulama açılışta yanıt vermez. Kurulumdan sonra önceden derleyin:
+
+```bash
+adb shell cmd package compile -m speed -f com.mapcontrol
+```
+
+4. İznin verildiğini kontrol edin; satırda `granted=true` görünmeli:
 
 ```bash
 adb shell "dumpsys package com.mapcontrol | grep CAR_VENDOR_EXTENSION"
 ```
 
-Sonraki güncellemeler `install.sh` ile normal yapılır. Sistemdeki kopya yerinde kaldıkça izin korunur.
+Sonraki güncellemeler `install.sh` ile normal yapılır, ardından 3. adımdaki derleme tekrarlanır. Sistemdeki kabuk yerinde kaldıkça izin korunur.
+
+MapControl öndeyken aracın sol ve sağ kenar çubukları gizlenir, uygulama arka plana geçince geri gelir.
 
 **Önemli:** Bu ünitelerde ayrıcalıklı izin denetimi açıktır (`control_privapp_permissions=enforce`). Uygulamanın istediği her `signature|privileged` izin `semidrive/privapp-permissions-com.mapcontrol.xml` dosyasında olmalıdır. Biri eksikse ünite açılmaz. Manifest'e böyle bir izin eklenirse bu dosyaya da ekleyin.
 

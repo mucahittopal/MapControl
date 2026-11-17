@@ -10,6 +10,7 @@ import com.mapcontrol.media.ClusterTrackRelay;
 import com.mapcontrol.ui.theme.UiStyles;
 import com.mapcontrol.util.AppLocaleManager;
 import com.mapcontrol.util.DisplayHelper;
+import com.mapcontrol.util.SemiDriveSystemBars;
 
 public final class MapControlApplication extends Application {
 
@@ -34,6 +35,7 @@ public final class MapControlApplication extends Application {
             com.mapcontrol.launcher.DriveScreen.INSTANCE.recoverStale(this);
         } catch (Throwable ignored) {
         }
+        SemiDriveSystemBars.restoreIfLeftHidden(this);
         int nightPref = getSharedPreferences("MapControlPrefs", MODE_PRIVATE)
                 .getInt("nightModeSetting", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
         AppCompatDelegate.setDefaultNightMode(nightPref);

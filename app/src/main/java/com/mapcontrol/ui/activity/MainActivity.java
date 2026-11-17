@@ -2071,6 +2071,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        com.mapcontrol.util.SemiDriveSystemBars.setHidden(this, true);
         com.mapcontrol.util.BootSession.markUiLaunched(this);
         // Görev zaten varken am start onCreate'i çalıştırmaz; güncelleme sonrası launcher modunu her
         // öne gelişte eşitle (alias + cihaz sahibi sabitlemesi), rol düştüyse sürüm başına bir kez iste.
@@ -2124,6 +2125,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onPause() {
+        com.mapcontrol.util.SemiDriveSystemBars.setHidden(this, false);
         SunroofGestureOverlayManager.getInstance(this).onActivityPaused();
         unregisterTargetPackageBroadcastReceiver();
         unregisterNavigationClusterBroadcastReceiver();

@@ -17,3 +17,5 @@ dependencyResolutionManagement {
 rootProject.name = "MapControl"
 include ':app'
 
+include ':semidrive-stub'
+project(':semidrive-stub').projectDir = file('semidrive/stub')
