@@ -1811,6 +1811,13 @@ public class MainActivity extends AppCompatActivity {
         portraitShell = portrait;
         android.util.DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
         screenWidthPx = displayMetrics.widthPixels;
+        if (com.mapcontrol.vehicle.VehiclePlatform.isSemiDrive() && !isInMultiWindowMode()) {
+            // Chery SemiDrive: pencere tam ekran ama uygulama sınırları sol çubuğu (235 px) dışarıda
+            // bırakıyor. Çubuklar bu ekran öndeyken gizlendiği için tam ekran genişliği kullanılır.
+            android.graphics.Point realSize = new android.graphics.Point();
+            getWindowManager().getDefaultDisplay().getRealSize(realSize);
+            screenWidthPx = realSize.x;
+        }
         sidebarWidthPx = portrait ? 0 : computeSidebarWidthPx(screenWidthPx, displayMetrics.density);
 
         if (shellHost == null) {
